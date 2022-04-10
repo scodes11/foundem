@@ -37,21 +37,30 @@
       </div>
       <div class="explore">
           <div class="registerfeed">
+
               <h3>Thank You {{name}} for your contribution towards this cause.
                    Your entry has been taken.
                    You will be notified once the owner claims the item.</h3>
-          
-              <h6>Item Details:</h6>
-              <ul>
-                  <li>Type: {{type}}</li>
-                  <li>Brand: {{brand}}</li>
-                  <li>Color: {{color}}</li>
-                  <li>Location: {{location}}</li>
-              </ul>
+              <div style="margin-top: 20px; margin-bottom: 30px;" class="container">
+                <div class="row">
+                <div class="col-4">
+                  <h6>Item Details:</h6>
+                  <ul>
+                      <li>Type: {{type}}</li>
+                      <li>Brand: {{brand}}</li>
+                      <li>Color: {{color}}</li>
+                      <li>Location: {{location}}</li>
+                  </ul>
+                </div>
+                <div class="col-4">
+                  <img src="{{url_for('static', filename="images/Screenshot_342.png")}}" height="120px"/>
+                </div>
+                </div>
+              </div>
               <a href="/User">
                 <button class="Submit">Confirm</button>
               </a>
-            </div>
+          </div>
           
       </div>
 </body>

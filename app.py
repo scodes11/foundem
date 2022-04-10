@@ -1,13 +1,16 @@
+from email import message
 from flask import Flask
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from flask import render_template, request, url_for, redirect, abort, flash
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from flask_login import login_user, logout_user,login_required, current_user
 from sqlalchemy.engine import url
 from sqlalchemy.sql import exists
 from sqlalchemy import func
+import re
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///test.db"
@@ -89,21 +92,40 @@ def show_user():
 
 @app.route('/User', methods=['POST'])
 def post_user():
-    if request.method == 'POST':
+    def validate():
+        validated = False
+        regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+        zip_code = request.form['lost_info_code']
+        email = request.form['lost_info_email']
+        number = request.form['lost_info_number']
+        if len(zip_code) == 6 and re.fullmatch(regex,email) and len(number) == 10 :
+            validated = True   
+        return validated
+    if request.method == 'POST' and validate():
         lost_info = request.form
         print(dict(lost_info))
         pic = request.files['lost_info_image']
         lost = Lost(type=lost_info)
-        
-        # mimetype=pic.mimetype
-        lost = Lost(type=lost_info.get("lost_info_type"), brand=lost_info.get("lost_info_brand"), color=lost_info.get("lost_info_color"),
-                    img=pic.read(),  location=lost_info.get("lost_info_location"), code=lost_info.get("lost_info_code"),
-                    name=lost_info.get("lost_info_name"), number=lost_info.get("lost_info_number"), email=lost_info.get("lost_info_email"))
-        
         type=lost_info.get("lost_info_type")
-        brand=lost_info.get("lost_info_brand")
+        brand=lost_info.get("lost_info_brand") 
+        color=lost_info.get("lost_info_color")
+        img=pic.read()
         location=lost_info.get("lost_info_location")
+        code=lost_info.get("lost_info_code")
         name=lost_info.get("lost_info_name")
+        number=lost_info.get("lost_info_number") 
+        email=lost_info.get("lost_info_email")
+        # mimetype=pic.mimetype
+        lost = Lost(type=type.capitalize(),
+                    brand=brand.capitalize(),
+                    color=color.capitalize(),
+                    img=pic.read(),  
+                    location=location.capitalize(), 
+                    code=code,
+                    name=name,
+                    number=number, 
+                    email=email)
+        
 
         db.session.add(lost)
         db.session.commit()
@@ -112,7 +134,8 @@ def post_user():
     else:
         
         # dblostitem =Lost.query.filter_by(type=lost_info.get("lost_info_type"), brand=lost_info.get("lost_info_brand"), color=lost_info.get("lost_info_color").first()            
-        return render_template("UserHome.html")
+        flash("Enter appropriate credentials - zipcode,phone,email")
+        return redirect(url_for('show_user', _anchor="lostSection"))
 @app.route('/LostItem')
 def Lost_Item():
         type=request.args.get('type')
@@ -184,9 +207,18 @@ def signup_post():
  
 @app.route('/User/foundDetails', methods=['GET','POST'] )
 def found_Detail():
-    if request.method == 'POST':
-        
-        found_item_details = {}
+    found_item_details = {}
+    def validate():
+        validated = False
+        regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+        zip_code = request.form['found_info_zip']
+        email = request.form['found_info_email']
+        number = request.form['found_info_number']
+        if len(zip_code) == 6 and re.fullmatch(regex,email) and len(number) == 10 :
+            validated = True   
+        return validated
+    if request.method == 'POST' and validate():
+        print("form Validated")
         found_item_details["type"] = request.form['found_info_type']
         found_item_details["brand"] = request.form['found_info_brand']
         found_item_details["color"] = request.form['found_info_color']
@@ -196,23 +228,28 @@ def found_Detail():
         found_item_details["name"] = request.form['found_info_name']
         found_item_details["number"] = request.form['found_info_number']
         found_item_details["email"] = request.form['found_info_email']
-
         print(found_item_details["type"])
         pic = request.files['found_info_image']
-
-    
-        found = Found(type=found_item_details["type"], brand=found_item_details["brand"], color=found_item_details["color"],
-                    img=pic.read(),  location=found_item_details["location"], code=found_item_details["zip"],
-                    name=found_item_details["name"], number=found_item_details["number"], email=found_item_details["email"])
-        
+        pic.save(f"static/images/{secure_filename(pic.filename)}")
+        found = Found(type=found_item_details["type"].capitalize(), 
+                      brand=found_item_details["brand"].capitalize(), 
+                      color=found_item_details["color"].capitalize(),
+                      img=pic.read(), 
+                      location=found_item_details["location"].capitalize(), 
+                      code=found_item_details["zip"],
+                      name=found_item_details["name"], 
+                      number=found_item_details["number"], 
+                      email=found_item_details["email"])
         if found:
             info_register_success = True
-
         db.session.add(found)
         db.session.commit()
-
-        
-    return redirect(url_for('found_detail_feed',name=found_item_details["name"],type=found_item_details["type"], brand=found_item_details["brand"], color=found_item_details["color"],location=found_item_details["location"])) 
+        print(secure_filename(pic.filename))
+        return redirect(url_for('found_detail_feed',name=found_item_details["name"],type=found_item_details["type"], brand=found_item_details["brand"], color=found_item_details["color"],location=found_item_details["location"],pic_url=pic.filename))
+    else : 
+        flash("Enter appropriate credentials - zipcode,phone,email")
+        return redirect(url_for('show_user', _anchor="foundSection"))
+         
 
 @app.route('/foundDetailFeedback')
 def found_detail_feed():
@@ -221,7 +258,8 @@ def found_detail_feed():
     brand=request.args.get("brand")
     color=request.args.get("color")
     location=request.args.get("location")
-    return render_template("foundItemFeed.html", name=name, type=type, brand=brand,color=color,location=location)
+    pic_name = request.args.get("pic_url")
+    return render_template("foundItemFeed.html", name=name, type=type, brand=brand,color=color,location=location, pic=pic_name)
 
 
 @app.route('/User/search', methods=['POST'])
